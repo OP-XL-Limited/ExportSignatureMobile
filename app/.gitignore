@@ -1,0 +1,243 @@
+/build
+###########################################################
+# Android / Jetpack Compose Production .gitignore
+###########################################################
+
+##############################
+# Gradle
+##############################
+.gradle/
+build/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+##############################
+# Local configuration
+##############################
+local.properties
+.properties
+
+##############################
+# Android Studio / IntelliJ
+##############################
+.idea/
+*.iml
+*.ipr
+*.iws
+
+##############################
+# Caches
+##############################
+captures/
+.externalNativeBuild/
+.cxx/
+
+##############################
+# Generated files
+##############################
+generated/
+out/
+bin/
+
+##############################
+# APK / Bundle
+##############################
+*.apk
+*.ap_
+*.aab
+*.aar
+
+##############################
+# Dex / Java
+##############################
+*.dex
+*.class
+
+##############################
+# Logs
+##############################
+*.log
+
+##############################
+# Android Studio navigation
+##############################
+.navigation/
+
+##############################
+# Kotlin
+##############################
+.kotlin/
+
+##############################
+# Kotlin Multiplatform
+##############################
+kotlin-js-store/
+.konan/
+
+##############################
+# NDK
+##############################
+obj/
+libs/
+
+##############################
+# CMake
+##############################
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+
+##############################
+# Profiling
+##############################
+*.hprof
+
+##############################
+# Signing keys
+##############################
+*.jks
+*.keystore
+*.pem
+*.p12
+*.key
+
+##############################
+# Secrets
+##############################
+secrets.properties
+keystore.properties
+apikey.properties
+
+##############################
+# Firebase (Optional)
+##############################
+# Ignore ONLY if you don't want to commit it.
+# Normally google-services.json is committed.
+# google-services.json
+
+##############################
+# Crashlytics
+##############################
+com_crashlytics_export_strings.xml
+
+##############################
+# Fastlane
+##############################
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+##############################
+# Android Profilers
+##############################
+*.trace
+
+##############################
+# macOS
+##############################
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+##############################
+# Windows
+##############################
+Thumbs.db
+Desktop.ini
+
+##############################
+# Linux
+##############################
+*~
+
+##############################
+# VS Code
+##############################
+.vscode/
+
+##############################
+# Temporary files
+##############################
+*.tmp
+*.temp
+*.orig
+*.bak
+*.swp
+*.swo
+
+##############################
+# Coverage
+##############################
+coverage/
+jacoco/
+*.ec
+
+##############################
+# Test reports
+##############################
+test-results/
+reports/
+
+##############################
+# Dependency cache
+##############################
+.caches/
+
+##############################
+# Emulator snapshots
+##############################
+*.avd.lock
+
+##############################
+# Room schema exports
+##############################
+schemas/
+
+##############################
+# KSP
+##############################
+.ksp/
+**/build/generated/ksp/
+
+##############################
+# KAPT
+##############################
+**/build/generated/source/kapt/
+**/build/tmp/kapt3/
+
+##############################
+# Compose Compiler Reports
+##############################
+compose_compiler/
+compose_metrics/
+compose_reports/
+
+##############################
+# Baseline Profiles
+##############################
+baseline-prof.txt
+
+##############################
+# Benchmark Outputs
+##############################
+benchmark/
+macrobenchmark/
+
+##############################
+# Detekt
+##############################
+detekt-report.*
+
+##############################
+# Lint
+##############################
+lint/intermediates/
+lint/generated/
+
+##############################
+# Misc
+##############################
+*.lock
