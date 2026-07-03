@@ -1,6 +1,5 @@
 package com.leadpresence.exportsignature
 
-
 import android.app.Activity
 import android.content.ContentValues
 import android.content.Context
@@ -13,6 +12,9 @@ import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ScrollState
@@ -39,14 +41,17 @@ import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.Divider
+
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -66,8 +71,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.asAndroidPath
@@ -83,10 +90,8 @@ import kotlin.math.roundToInt
 data class StrokePath(
     val path: Path,
     val color: Color,
-    val strokeWidth: Float
+    val strokeWidth: Float,
 )
-
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,47 +111,43 @@ fun SignatureScreen() {
     }
     val permissionLauncher =
         rememberLauncherForActivityResult(
-            ActivityResultContracts.RequestPermission()
+            ActivityResultContracts.RequestPermission(),
         ) { granted ->
             if (granted) {
                 if (granted) {
-
                     pendingFormat?.let {
-
                         exportSignatureNew(
                             context,
                             strokes,
-                            it
+                            it,
                         )
-
-                    }}
+                    }
+                }
             } else {
-                Toast.makeText(
-                    context,
-                    "Storage permission denied",
-                    Toast.LENGTH_SHORT
-                ).show()
+                Toast
+                    .makeText(
+                        context,
+                        "Storage permission denied",
+                        Toast.LENGTH_SHORT,
+                    ).show()
             }
         }
 
-
-
-
-
     // Brush Configurations
     var selectedColor by remember { mutableStateOf(colors.primary) }
-    var strokeWidth by remember { mutableStateOf(3f) }
+    var strokeWidth by remember { mutableStateOf(1f) }
     var showExportDialog by remember { mutableStateOf(false) }
 
-    val availableColors = listOf(
-        colors.primary,           // Navy
-        colors.secondary,         // Red
-        colors.tertiary,          // Light Blue
-        Color(0xFF4CAF50),        // Green
-        Color(0xFF2196F3),        // Blue
-        Color(0xFFFF9800),        // Orange
-        colors.onSurface          // Dark for white background
-    )
+    val availableColors =
+        listOf(
+            colors.primary, // Navy
+            colors.secondary, // Red
+            colors.tertiary, // Light Blue
+            Color(0xFF4CAF50), // Green
+            Color(0xFF2196F3), // Blue
+            Color(0xFFFF9800), // Orange
+            colors.onSurface, // Dark for white background
+        )
 
     Scaffold(
         topBar = {
@@ -157,62 +158,66 @@ fun SignatureScreen() {
                             text = "Signature Pad",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = colors.onSurface
+                            color = colors.onSurface,
                         )
                         Text(
                             text = "Draw your signature",
                             style = MaterialTheme.typography.labelSmall,
-                            color = colors.onSurfaceVariant
+                            color = colors.onSurfaceVariant,
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colors.surface,
-                    titleContentColor = colors.onSurface
-                ),
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = colors.surface,
+                        titleContentColor = colors.onSurface,
+                    ),
             )
         },
         containerColor = colors.background,
-        contentColor = colors.onBackground
+        contentColor = colors.onBackground,
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
         ) {
             // Canvas Section
             Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(colors.surface)
-                    .border(
-                        width = 1.5.dp,
-                        color = colors.outlineVariant,
-                        shape = RoundedCornerShape(20.dp)
-                    )
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(colors.surface)
+                        .border(
+                            width = 1.5.dp,
+                            color = colors.outlineVariant,
+                            shape = RoundedCornerShape(20.dp),
+                        ),
             ) {
                 Canvas(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .pointerInput(selectedColor, strokeWidth) {
-                            detectDragGestures(
-                                onDragStart = { offset ->
-                                    redoHistory.clear()
-                                    val path = Path().apply { moveTo(offset.x, offset.y) }
-                                    currentPath = path
-                                    strokes.add(StrokePath(path, selectedColor, strokeWidth))
-                                },
-                                onDrag = { change, _ ->
-                                    currentPath?.lineTo(change.position.x, change.position.y)
-                                    val last = strokes.removeAt(strokes.lastIndex)
-                                    strokes.add(last)
-                                },
-                                onDragEnd = { currentPath = null }
-                            )
-                        }
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .pointerInput(selectedColor, strokeWidth) {
+                                detectDragGestures(
+                                    onDragStart = { offset ->
+                                        redoHistory.clear()
+                                        val path = Path().apply { moveTo(offset.x, offset.y) }
+                                        currentPath = path
+                                        strokes.add(StrokePath(path, selectedColor, strokeWidth))
+                                    },
+                                    onDrag = { change, _ ->
+                                        currentPath?.lineTo(change.position.x, change.position.y)
+                                        val last = strokes.removeAt(strokes.lastIndex)
+                                        strokes.add(last)
+                                    },
+                                    onDragEnd = { currentPath = null },
+                                )
+                            },
                 ) {
                     // Draw grid background for visual reference
                     drawRect(color = colors.surface)
@@ -221,11 +226,12 @@ fun SignatureScreen() {
                         drawPath(
                             path = strokePath.path,
                             color = strokePath.color,
-                            style = Stroke(
-                                width = strokePath.strokeWidth,
-                                cap = StrokeCap.Round,
-                                join = StrokeJoin.Round
-                            )
+                            style =
+                                Stroke(
+                                    width = strokePath.strokeWidth,
+                                    cap = StrokeCap.Round,
+                                    join = StrokeJoin.Round,
+                                ),
                         )
                     }
                 }
@@ -233,32 +239,33 @@ fun SignatureScreen() {
                 // Empty state message
                 if (strokes.isEmpty()) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(24.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                        verticalArrangement = Arrangement.Center,
                     ) {
                         Icon(
                             imageVector = Icons.Default.Image,
                             contentDescription = null,
                             tint = colors.onSurfaceVariant.copy(alpha = 0.3f),
-                            modifier = Modifier.size(56.dp)
+                            modifier = Modifier.size(56.dp),
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = "Draw your signature",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = colors.onSurfaceVariant.copy(alpha = 0.5f)
+                            color = colors.onSurfaceVariant.copy(alpha = 0.5f),
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Control Panel
-            ControlPanel(
+            ExpandableControlPanel(
                 colors = colors,
                 strokes = strokes,
                 redoHistory = redoHistory,
@@ -282,7 +289,11 @@ fun SignatureScreen() {
                     redoHistory.clear()
                 },
                 onExport = { showExportDialog = true },
-                context = context
+                context = context,
+                isExpanded = controlPanelExpanded.value,
+                onToggleExpand = {
+                    controlPanelExpanded.value = !controlPanelExpanded.value
+                },
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -294,24 +305,21 @@ fun SignatureScreen() {
         ExportDialog(
             onDismiss = { showExportDialog = false },
             onExportPNG = {
-                val format =Bitmap.CompressFormat.PNG
+                val format = Bitmap.CompressFormat.PNG
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     exportSignatureNew(context, strokes, Bitmap.CompressFormat.PNG)
                 } else {
-
                     if (StoragePermission.hasWritePermission(context)) {
                         exportSignatureNew(
                             context,
                             strokes,
-                            format
+                            format,
                         )
-
                     } else {
-
                         pendingFormat = format
                         StoragePermission.requestPermission(
                             activity,
-                            permissionLauncher
+                            permissionLauncher,
                         )
                     }
                 }
@@ -319,36 +327,34 @@ fun SignatureScreen() {
                 showExportDialog = false
             },
             onExportJPEG = {
-                val format =Bitmap.CompressFormat.JPEG
+                val format = Bitmap.CompressFormat.JPEG
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     exportSignatureNew(context, strokes, Bitmap.CompressFormat.JPEG)
                 } else {
-
                     if (StoragePermission.hasWritePermission(context)) {
-
                         exportSignatureNew(
                             context,
                             strokes,
-                            format
+                            format,
                         )
-
                     } else {
                         pendingFormat = format
                         StoragePermission.requestPermission(
-                            activity= activity,
-                            permissionLauncher
+                            activity = activity,
+                            permissionLauncher,
                         )
                     }
                 }
                 showExportDialog = false
             },
-            colors = colors
+            colors = colors,
         )
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ControlPanel(
+fun ExpandableControlPanel(
     colors: ColorScheme,
     strokes: List<StrokePath>,
     redoHistory: List<StrokePath>,
@@ -361,233 +367,281 @@ fun ControlPanel(
     onRedo: () -> Unit,
     onClear: () -> Unit,
     onExport: () -> Unit,
-    context: Context
+    context: Context,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
         color = colors.surface,
         shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.5.dp, colors.outlineVariant)
+        border = BorderStroke(1.5.dp, colors.outlineVariant),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // Color Selector Section
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = true) { onToggleExpand() }
+                        .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Color",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = colors.onSurfaceVariant,
-                    fontWeight = FontWeight.SemiBold
+                    text = "Brush Setting",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = colors.onSurface,
+                    fontWeight = FontWeight.SemiBold,
                 )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    availableColors.forEach { color ->
-                        val isSelected = selectedColor == color
-                        Box(
-                            modifier = Modifier
-                                .size(22.dp)
-                                .clip(CircleShape)
-                                .background(color)
-                                .border(
-                                    width = if (isSelected) 3.dp else 0.dp,
-                                    color = if (isSelected) colors.onSurface else Color.Transparent,
-                                    shape = CircleShape
-                                )
-                                .clickable { onColorChange(color) }
-                        )
-                    }
-                }
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    tint = colors.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp).rotate(if (isExpanded) 180f else 0f),
+                )
             }
-
-            Divider(color = colors.outlineVariant, thickness = 1.dp)
-
-            // Stroke Width Section
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+            AnimatedVisibility(visible = isExpanded, enter = expandVertically(), exit = shrinkVertically()) {
+                // Color Selector Section
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = "Finger size ",
+                        text = "Color",
                         style = MaterialTheme.typography.labelMedium,
                         color = colors.onSurfaceVariant,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
                     )
-                    Box(
-                        modifier = Modifier
-                            .background(
-                                color = colors.primaryContainer,
-                                shape = RoundedCornerShape(8.dp)
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        availableColors.forEach { color ->
+                            val isSelected = selectedColor == color
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .size(22.dp)
+                                        .clip(CircleShape)
+                                        .background(color)
+                                        .border(
+                                            width = if (isSelected) 3.dp else 0.dp,
+                                            color = if (isSelected) colors.onSurface else Color.Transparent,
+                                            shape = CircleShape,
+                                        ).clickable { onColorChange(color) },
                             )
-                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                        }
+                    }
+
+                    HorizontalDivider(color = colors.outlineVariant, thickness = 1.dp)
+
+                    // Stroke Width Section
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "Finger size ",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = colors.onSurfaceVariant,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .background(
+                                            color = colors.primaryContainer,
+                                            shape = RoundedCornerShape(8.dp),
+                                        ).padding(horizontal = 12.dp, vertical = 4.dp),
+                            ) {
+                                Text(
+                                    text = "${strokeWidth.toInt()} px",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = colors.onPrimaryContainer,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            // Visual stroke preview
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .size(40.dp)
+                                        .background(colors.surfaceVariant, RoundedCornerShape(8.dp)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size((strokeWidth / 2).dp.coerceAtMost(24.dp))
+                                            .clip(CircleShape)
+                                            .background(selectedColor),
+                                )
+                            }
+
+                            // Slider with custom styling
+                            Slider(
+                                value = strokeWidth,
+                                onValueChange = onStrokeWidthChange,
+                                valueRange = 1f..15f,
+                                steps = 14,
+                                modifier = Modifier.weight(1f),
+
+                                thumb = {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(RectangleShape)
+                                            .background(Color.Red)
+                                    )
+
+                                },
+                                colors =
+                                    SliderDefaults.colors(
+                                        thumbColor = selectedColor,
+                                        activeTrackColor = selectedColor,
+                                        inactiveTrackColor = colors.outlineVariant,
+                                    ),
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(Modifier, 1.dp, colors.outlineVariant)
+
+                    // Action Buttons Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        // Undo Button
+                        ElevatedButton(
+                            onClick = onUndo,
+                            enabled = strokes.isNotEmpty(),
+                            modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .height(40.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            colors =
+                                ButtonDefaults.elevatedButtonColors(
+                                    containerColor = colors.primaryContainer,
+                                    contentColor = colors.onPrimaryContainer,
+                                    disabledContainerColor = colors.surfaceVariant,
+                                    disabledContentColor = colors.onSurfaceVariant.copy(alpha = 0.5f),
+                                ),
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Undo,
+                                contentDescription = "Undo",
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+
+                        // Redo Button
+                        ElevatedButton(
+                            onClick = onRedo,
+                            enabled = redoHistory.isNotEmpty(),
+                            modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .height(40.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            colors =
+                                ButtonDefaults.elevatedButtonColors(
+                                    containerColor = colors.primaryContainer,
+                                    contentColor = colors.onPrimaryContainer,
+                                    disabledContainerColor = colors.surfaceVariant,
+                                    disabledContentColor = colors.onSurfaceVariant.copy(alpha = 0.5f),
+                                ),
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Redo,
+                                contentDescription = "Redo",
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+
+                        // Clear Button
+                        OutlinedButton(
+                            onClick = onClear,
+                            enabled = strokes.isNotEmpty(),
+                            modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .height(40.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            border =
+                                BorderStroke(
+                                    1.5.dp,
+                                    if (strokes.isNotEmpty()) colors.error else colors.outlineVariant,
+                                ),
+                            colors =
+                                ButtonDefaults.outlinedButtonColors(
+                                    contentColor = if (strokes.isNotEmpty()) colors.error else colors.outlineVariant,
+                                    disabledContentColor = colors.outlineVariant,
+                                ),
+                        ) {
+                            Icon(
+                                Icons.Default.Clear,
+                                contentDescription = "Clear",
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    }
+
+                    // Export Button (Full Width)
+                    Button(
+                        onClick = onExport,
+                        enabled = strokes.isNotEmpty(),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = colors.secondary,
+                                contentColor = colors.onSecondary,
+                                disabledContainerColor = colors.surfaceVariant,
+                                disabledContentColor = colors.onSurfaceVariant.copy(alpha = 0.5f),
+                            ),
+                        elevation =
+                            ButtonDefaults.elevatedButtonElevation(
+                                defaultElevation = 6.dp,
+                                pressedElevation = 8.dp,
+                            ),
+                    ) {
+                        Icon(
+                            Icons.Default.Download,
+                            contentDescription = "Export",
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "${strokeWidth.toInt()} px",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colors.onPrimaryContainer,
-                            fontWeight = FontWeight.SemiBold
+                            "Save Signature",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
                         )
                     }
                 }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Visual stroke preview
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(colors.surfaceVariant, RoundedCornerShape(8.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size((strokeWidth / 2).dp.coerceAtMost(24.dp))
-                                .clip(CircleShape)
-                                .background(selectedColor)
-                        )
-                    }
-
-                    // Slider with custom styling
-                    Slider(
-                        value = strokeWidth,
-                        onValueChange = onStrokeWidthChange,
-                        valueRange = 1f..15f,
-                        steps = 14,
-                        modifier = Modifier.weight(1f),
-                        colors = SliderDefaults.colors(
-                            thumbColor = selectedColor,
-                            activeTrackColor = selectedColor,
-                            inactiveTrackColor = colors.outlineVariant
-                        )
-                    )
-                }
-            }
-
-            Divider(color = colors.outlineVariant, thickness = 1.dp)
-
-            // Action Buttons Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Undo Button
-                ElevatedButton(
-                    onClick = onUndo,
-                    enabled = strokes.isNotEmpty(),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.elevatedButtonColors(
-                        containerColor = colors.primaryContainer,
-                        contentColor = colors.onPrimaryContainer,
-                        disabledContainerColor = colors.surfaceVariant,
-                        disabledContentColor = colors.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Undo,
-                        contentDescription = "Undo",
-                        modifier = Modifier.size(18.dp)
-                    )
-
-                }
-
-                // Redo Button
-                ElevatedButton(
-                    onClick = onRedo,
-                    enabled = redoHistory.isNotEmpty(),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.elevatedButtonColors(
-                        containerColor = colors.primaryContainer,
-                        contentColor = colors.onPrimaryContainer,
-                        disabledContainerColor = colors.surfaceVariant,
-                        disabledContentColor = colors.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Redo,
-                        contentDescription = "Redo",
-                        modifier = Modifier.size(18.dp)
-                    )
-
-                }
-
-                // Clear Button
-                OutlinedButton(
-                    onClick = onClear,
-                    enabled = strokes.isNotEmpty(),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(
-                        1.5.dp,
-                        if (strokes.isNotEmpty()) colors.error else colors.outlineVariant
-                    ),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = if (strokes.isNotEmpty()) colors.error else colors.outlineVariant,
-                        disabledContentColor = colors.outlineVariant
-                    )
-                ) {
-                    Icon(
-                        Icons.Default.Clear,
-                        contentDescription = "Clear",
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-
-
-            // Export Button (Full Width)
-            Button(
-                onClick = onExport,
-                enabled = strokes.isNotEmpty(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colors.secondary,
-                    contentColor = colors.onSecondary,
-                    disabledContainerColor = colors.surfaceVariant,
-                    disabledContentColor = colors.onSurfaceVariant.copy(alpha = 0.5f)
-                ),
-                elevation = ButtonDefaults.elevatedButtonElevation(
-                    defaultElevation = 6.dp,
-                    pressedElevation = 8.dp
-                )
-            ) {
-                Icon(
-                    Icons.Default.Download,
-                    contentDescription = "Export",
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                "Save Signature",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
             }
         }
     }
@@ -598,7 +652,7 @@ fun ExportDialog(
     onDismiss: () -> Unit,
     onExportPNG: () -> Unit,
     onExportJPEG: () -> Unit,
-    colors: ColorScheme
+    colors: ColorScheme,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -610,36 +664,37 @@ fun ExportDialog(
                 Icons.Default.Download,
                 contentDescription = null,
                 tint = colors.secondary,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(32.dp),
             )
         },
         title = {
             Text(
                 "Save Signature as?",
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
             )
         },
         text = {
             Text(
                 "Choose a format to save your signature:",
                 style = MaterialTheme.typography.bodyMedium,
-                color = colors.onSurfaceVariant
+                color = colors.onSurfaceVariant,
             )
         },
         confirmButton = {
             Button(
                 onClick = onExportPNG,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colors.primary,
-                    contentColor = colors.onPrimary
-                ),
-                shape = RoundedCornerShape(8.dp)
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = colors.primary,
+                        contentColor = colors.onPrimary,
+                    ),
+                shape = RoundedCornerShape(8.dp),
             ) {
                 Icon(
                     Icons.Default.Image,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(18.dp),
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text("PNG", fontWeight = FontWeight.SemiBold)
@@ -648,40 +703,37 @@ fun ExportDialog(
         dismissButton = {
             Button(
                 onClick = onExportJPEG,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colors.secondary,
-                    contentColor = colors.onSecondary
-                ),
-                shape = RoundedCornerShape(8.dp)
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = colors.secondary,
+                        contentColor = colors.onSecondary,
+                    ),
+                shape = RoundedCornerShape(8.dp),
             ) {
                 Icon(
                     Icons.Default.Image,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(18.dp),
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text("JPEG", fontWeight = FontWeight.SemiBold)
             }
-        }
+        },
     )
 }
 
 @Composable
-private fun rememberScrollState(): ScrollState {
-    return remember { ScrollState(0) }
-}
+private fun rememberScrollState(): ScrollState = remember { ScrollState(0) }
 
 /**
  * Robust offscreen graphics rendering. Replays vector elements inside an isolated
  * native canvas matching expected dimensional boundaries to ensure perfect clean exports.
  */
 
-
 fun computeSignatureBounds(
     strokes: List<StrokePath>,
-    padding: Float = 40f
+    padding: Float = 40f,
 ): RectF? {
-
     if (strokes.isEmpty()) return null
 
     val result = RectF()
@@ -690,7 +742,6 @@ fun computeSignatureBounds(
     var first = true
 
     for (stroke in strokes) {
-
         stroke.path
             .asAndroidPath()
             .computeBounds(temp, true)
@@ -711,20 +762,20 @@ fun computeSignatureBounds(
 fun exportSignatureNew(
     context: Context,
     strokes: List<StrokePath>,
-    format: Bitmap.CompressFormat
+    format: Bitmap.CompressFormat,
 ): Uri? {
-
     if (strokes.isEmpty()) return null
 
     val bounds = computeSignatureBounds(strokes) ?: return null
     val targetWidth = 2048f
     val scale = targetWidth / bounds.width()
 
-    val bitmap = Bitmap.createBitmap(
-        targetWidth.toInt(),
-        (bounds.height() * scale).roundToInt(),
-        Bitmap.Config.ARGB_8888
-    )
+    val bitmap =
+        Bitmap.createBitmap(
+            targetWidth.toInt(),
+            (bounds.height() * scale).roundToInt(),
+            Bitmap.Config.ARGB_8888,
+        )
     val canvas = android.graphics.Canvas(bitmap)
 
     canvas.scale(scale, scale)
@@ -735,77 +786,77 @@ fun exportSignatureNew(
         canvas.drawColor(android.graphics.Color.WHITE)
     }
 
-    val paint = android.graphics.Paint().apply {
-        isAntiAlias = true
-        style = android.graphics.Paint.Style.STROKE
-        strokeCap = android.graphics.Paint.Cap.ROUND
-        strokeJoin = android.graphics.Paint.Join.ROUND
-    }
+    val paint =
+        android.graphics.Paint().apply {
+            isAntiAlias = true
+            style = android.graphics.Paint.Style.STROKE
+            strokeCap = android.graphics.Paint.Cap.ROUND
+            strokeJoin = android.graphics.Paint.Join.ROUND
+        }
 
     strokes.forEach {
-
         paint.color = it.color.toArgb()
         paint.strokeWidth = it.strokeWidth
 
         canvas.drawPath(
             it.path.asAndroidPath(),
-            paint
+            paint,
         )
     }
 
     val extension =
-        if (format == Bitmap.CompressFormat.PNG)
+        if (format == Bitmap.CompressFormat.PNG) {
             "png"
-        else
+        } else {
             "jpg"
+        }
 
     val mime =
-        if (format == Bitmap.CompressFormat.PNG)
+        if (format == Bitmap.CompressFormat.PNG) {
             "image/png"
-        else
+        } else {
             "image/jpeg"
+        }
 
     val fileName =
         "Signature_${System.currentTimeMillis()}.$extension"
 
     val resolver = context.contentResolver
 
-    val values = ContentValues().apply {
+    val values =
+        ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
 
-        put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
+            put(MediaStore.Images.Media.MIME_TYPE, mime)
 
-        put(MediaStore.Images.Media.MIME_TYPE, mime)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(
+                    MediaStore.Images.Media.RELATIVE_PATH,
+                    Environment.DIRECTORY_PICTURES + "/Signatures",
+                )
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-
-            put(
-                MediaStore.Images.Media.RELATIVE_PATH,
-                Environment.DIRECTORY_PICTURES + "/Signatures"
-            )
-
-            put(MediaStore.Images.Media.IS_PENDING, 1)
+                put(MediaStore.Images.Media.IS_PENDING, 1)
+            }
         }
-    }
 
-    val uri = resolver.insert(
-        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-        values
-    ) ?: return null
+    val uri =
+        resolver.insert(
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+            values,
+        ) ?: return null
 
     try {
-
         resolver.openOutputStream(uri)?.use {
             bitmap.compress(
                 format,
                 100,
-                it
+                it,
             )
 
             it.flush()
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-
             values.clear()
             values.put(MediaStore.Images.Media.IS_PENDING, 0)
 
@@ -813,17 +864,13 @@ fun exportSignatureNew(
         }
 //        savedUri = uri
         val sizeKb = (bitmap.byteCount / 1024)
-        Toast.makeText(context, "✓ Saved successfully as $extension (${sizeKb} KB)", Toast.LENGTH_LONG).show()
+        Toast.makeText(context, "✓ Saved successfully as $extension ($sizeKb KB)", Toast.LENGTH_LONG).show()
         return uri
-
     } catch (e: Exception) {
-
         resolver.delete(uri, null, null)
 
         return null
-
     } finally {
-
         bitmap.recycle()
     }
 }
