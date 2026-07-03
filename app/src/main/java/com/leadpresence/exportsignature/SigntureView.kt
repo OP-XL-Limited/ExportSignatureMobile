@@ -23,6 +23,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,12 +59,16 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,6 +89,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.leadpresence.exportsignature.ui.theme.ErrorRed
+import com.leadpresence.exportsignature.ui.theme.SecondaryDarkRed
+import com.leadpresence.exportsignature.ui.theme.SurfaceWhite
 import kotlin.math.roundToInt
 
 // Data class encapsulating unique vector properties of each continuous path
@@ -135,18 +143,18 @@ fun SignatureScreen() {
 
     // Brush Configurations
     var selectedColor by remember { mutableStateOf(colors.primary) }
-    var strokeWidth by remember { mutableStateOf(1f) }
+    var strokeWidth by remember { mutableFloatStateOf(1f) }
     var showExportDialog by remember { mutableStateOf(false) }
 
     val availableColors =
         listOf(
+            colors.onSurface, // Dark for white background
             colors.primary, // Navy
-            colors.secondary, // Red
+            ErrorRed, // Red
             colors.tertiary, // Light Blue
             Color(0xFF4CAF50), // Green
             Color(0xFF2196F3), // Blue
             Color(0xFFFF9800), // Orange
-            colors.onSurface, // Dark for white background
         )
 
     Scaffold(
@@ -155,10 +163,10 @@ fun SignatureScreen() {
                 title = {
                     Column {
                         Text(
-                            text = "Signature Pad",
+                            text = "E-Signature Pad",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = colors.onSurface,
+                            color = SecondaryDarkRed,
                         )
                         Text(
                             text = "Draw your signature",
@@ -193,8 +201,8 @@ fun SignatureScreen() {
                         .clip(RoundedCornerShape(20.dp))
                         .background(colors.surface)
                         .border(
-                            width = 1.5.dp,
-                            color = colors.outlineVariant,
+                            width = 0.5.dp,
+                            color = SecondaryDarkRed,
                             shape = RoundedCornerShape(20.dp),
                         ),
             ) {
@@ -378,7 +386,7 @@ fun ExpandableControlPanel(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         color = colors.surface,
         shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.5.dp, colors.outlineVariant),
+        border = BorderStroke(0.5.dp, SecondaryDarkRed),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -422,26 +430,27 @@ fun ExpandableControlPanel(
                             Modifier
                                 .fillMaxWidth()
                                 .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
                     ) {
                         availableColors.forEach { color ->
                             val isSelected = selectedColor == color
                             Box(
                                 modifier =
                                     Modifier
-                                        .size(22.dp)
-                                        .clip(CircleShape)
+                                        .size(if (isSelected) 34.dp else 30.dp)
+                                        .clip(RoundedCornerShape(5.dp))
                                         .background(color)
+
                                         .border(
-                                            width = if (isSelected) 3.dp else 0.dp,
-                                            color = if (isSelected) colors.onSurface else Color.Transparent,
-                                            shape = CircleShape,
+                                            width = if (isSelected) 2.dp else 0.dp,
+                                            color = if (isSelected) SecondaryDarkRed else Color.Transparent,
+                                            shape = RoundedCornerShape(5.dp),
                                         ).clickable { onColorChange(color) },
                             )
                         }
                     }
 
-                    HorizontalDivider(color = colors.outlineVariant, thickness = 1.dp)
+                    HorizontalDivider(color = SecondaryDarkRed, thickness = 0.5.dp)
 
                     // Stroke Width Section
                     Column(
@@ -453,7 +462,7 @@ fun ExpandableControlPanel(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                text = "Finger size ",
+                                text = "Brush size ",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = colors.onSurfaceVariant,
                                 fontWeight = FontWeight.SemiBold,
@@ -462,7 +471,7 @@ fun ExpandableControlPanel(
                                 modifier =
                                     Modifier
                                         .background(
-                                            color = colors.primaryContainer,
+                                            color = colors.outlineVariant,
                                             shape = RoundedCornerShape(8.dp),
                                         ).padding(horizontal = 12.dp, vertical = 4.dp),
                             ) {
@@ -485,15 +494,20 @@ fun ExpandableControlPanel(
                                 modifier =
                                     Modifier
                                         .size(40.dp)
-                                        .background(colors.surfaceVariant, RoundedCornerShape(8.dp)),
+                                        .border(
+                                            width = 0.5.dp,
+                                            color = SecondaryDarkRed,
+                                            shape = RoundedCornerShape(5.dp),
+                                        )
+                                        .background(colors.surfaceVariant, RoundedCornerShape(5.dp)),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Box(
                                     modifier =
                                         Modifier
-                                            .size((strokeWidth / 2).dp.coerceAtMost(24.dp))
+                                            .size((strokeWidth / 2).dp.coerceAtMost(100.dp))
                                             .clip(CircleShape)
-                                            .background(selectedColor),
+                                            .background(SecondaryDarkRed),
                                 )
                             }
 
@@ -504,13 +518,35 @@ fun ExpandableControlPanel(
                                 valueRange = 1f..15f,
                                 steps = 14,
                                 modifier = Modifier.weight(1f),
+                                interactionSource = remember { MutableInteractionSource() },
+                                track = {
+                                    SliderDefaults.Track(
+                                        sliderState = SliderState(
+                                            value = strokeWidth,
+                                            valueRange = 1f..15f,
+                                            steps = 14,
+                                        ),
+                                        colors =
+                                            SliderDefaults.colors(
+                                                thumbColor = selectedColor,
+                                                activeTrackColor = SecondaryDarkRed,
+                                                inactiveTrackColor = colors.outlineVariant,
+                                        ),
+                                        thumbTrackGapSize = 0.dp
+                                    )
+                                },
 
                                 thumb = {
                                     Box(
                                         modifier = Modifier
-                                            .size(8.dp)
-                                            .clip(RectangleShape)
-                                            .background(Color.Red)
+                                            .size(16.dp)
+                                            .clip(CircleShape)
+                                            .border(
+                                                width = 2.dp,
+                                                color = SecondaryDarkRed,
+                                                shape = CircleShape,
+                                            )
+                                            .background(SurfaceWhite)
                                     )
 
                                 },
@@ -524,7 +560,7 @@ fun ExpandableControlPanel(
                         }
                     }
 
-                    HorizontalDivider(Modifier, 1.dp, colors.outlineVariant)
+                    HorizontalDivider(Modifier, 0.5.dp, SecondaryDarkRed)
 
                     // Action Buttons Row
                     Row(
@@ -554,6 +590,8 @@ fun ExpandableControlPanel(
                                 modifier = Modifier.size(18.dp),
                             )
                         }
+                        VerticalDivider(Modifier.height(40.dp),  0.5.dp, SecondaryDarkRed)
+
 
                         // Redo Button
                         ElevatedButton(
@@ -578,6 +616,8 @@ fun ExpandableControlPanel(
                                 modifier = Modifier.size(18.dp),
                             )
                         }
+                        VerticalDivider(Modifier.height(40.dp),  0.5.dp, SecondaryDarkRed)
+
 
                         // Clear Button
                         OutlinedButton(
@@ -606,6 +646,7 @@ fun ExpandableControlPanel(
                             )
                         }
                     }
+
 
                     // Export Button (Full Width)
                     Button(
